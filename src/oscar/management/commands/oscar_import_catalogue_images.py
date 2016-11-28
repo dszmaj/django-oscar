@@ -14,12 +14,14 @@ class Command(BaseCommand):
     args = '/path/to/folder'
     help = 'For importing product images from a folder'
 
-    option_list = BaseCommand.option_list + (
-        make_option('--filename',
-                    dest='filename',
-                    default='upc',
-                    help='Product field to lookup from image filename'),
-    )
+    def add_arguments(self, parser):
+        parser.add_argument('args', nargs='+')
+        parser.add_argument(
+            '--filename',
+            dest='filename',
+            default='upc',
+            help='Product field to lookup from image filename'
+        )
 
     def handle(self, *args, **options):
         if len(args) != 1:

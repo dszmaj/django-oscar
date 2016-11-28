@@ -15,11 +15,21 @@ class Command(BaseCommand):
     args = '/path/to/file1.csv /path/to/file2.csv ...'
     help = 'For creating product catalogues based on a CSV file'
 
-    option_list = BaseCommand.option_list + (
-        make_option('--flush', action='store_true', dest='flush',
-                    default=False, help='Flush tables before importing'),
-        make_option('--delimiter', dest='delimiter', default=",",
-                    help='Delimiter used within CSV file(s)'))
+    def add_arguments(self, parser):
+        parser.add_argument('args', nargs='+')
+        parser.add_argument(
+            '--flush',
+            action='store_true',
+            dest='flush',
+            default=False,
+            help='Flush tables before importing'
+        )
+        parser.add_argument(
+            '--delimiter',
+            dest='delimiter',
+            default=",",
+            help='Delimiter used within CSV file(s)'
+        )
 
     def handle(self, *args, **options):
         if not args:
