@@ -94,7 +94,14 @@ class AutoSlugField(SlugField):
         return re.sub(r'^%s+|%s+$' % (re_sep, re_sep), '', value)
 
     def get_queryset(self, model_cls, slug_field):
-        for field, model in model_cls._meta.get_fields_with_model():
+        fields_with_model = [
+            (f, f.model if f.model != model_cls else None)
+            for f in model_cls._meta.get_fields()
+            if not f.is_relation
+            or f.one_to_one
+            or (f.many_to_one and f.related_model)
+            ]
+        for field, model in fields_with_model:
             if model and field == slug_field:
                 return model._default_manager.all()
         return model_cls._default_manager.all()
