@@ -101,7 +101,7 @@ class AbstractWeightBased(AbstractBase):
     weight_attribute = 'weight'
 
     code = 'weight-based-shipping'
-    name = _('Weight-based shipping')
+    name = models.CharField(_('Weight-based shipping'), max_length=128, unique=True)
 
     # The default weight to use (in kg) when a product doesn't have a weight
     # attribute.
