@@ -15,7 +15,7 @@ class Command(BaseCommand):
     args = '/path/to/file1.csv /path/to/file2.csv ...'
     help = 'For creating product catalogues based on a CSV file'
 
-    option_list = BaseCommand.option_list + (
+    option_list = getattr(BaseCommand, 'option_list', ()) + (
         make_option('--flush', action='store_true', dest='flush',
                     default=False, help='Flush tables before importing'),
         make_option('--delimiter', dest='delimiter', default=",",
