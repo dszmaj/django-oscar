@@ -65,6 +65,16 @@ class TestAnAnonymousReview(TestCase):
         review = self.review(name="Dave")
         self.assertEqual("Dave", review.reviewer_name)
 
+    def test_review_moderate_setting_false(self):
+        with self.settings(OSCAR_MODERATE_REVIEWS=False):
+            review = self.review()
+            self.assertEqual(1, review.status)
+
+    def test_review_moderate_setting_true(self):
+        with self.settings(OSCAR_MODERATE_REVIEWS=True):
+            review = self.review()
+            self.assertEqual(0, review.status)
+
 
 class TestAUserReview(TestCase):
 
@@ -102,6 +112,22 @@ class TestAUserReview(TestCase):
     def test_has_reviewer_name_property(self):
         review = self.review()
         self.assertEqual("Tom Thumb", review.reviewer_name)
+
+    def test_num_approved_reviews(self):
+        review = self.review()
+        review.save()
+        self.assertEqual(self.product.num_approved_reviews, 1)
+        self.assertEqual(self.product.reviews.approved().first(), review)
+
+    def test_review_moderate_setting_false(self):
+        with self.settings(OSCAR_MODERATE_REVIEWS=False):
+            review = self.review()
+            self.assertEqual(1, review.status)
+
+    def test_review_moderate_setting_true(self):
+        with self.settings(OSCAR_MODERATE_REVIEWS=True):
+            review = self.review()
+            self.assertEqual(0, review.status)
 
 
 class TestVotingOnAReview(TestCase):

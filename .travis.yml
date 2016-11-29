@@ -2,15 +2,6 @@
 # http://docs.travis-ci.com/user/workers/container-based-infrastructure/
 sudo: false
 
-# Cache pip downloads
-cache:
-    # Apparently if you override the install command that silently disables the
-    # cache: pip support. This is less than ideal and @dstufft opened up
-    # travis-ci/travis-ci#3239 to hopefully get that addressed. For now we
-    # manually add the pip cache directory to the build cache.
-    directories:
-      - ~/.cache/pip
-
 language: python
 
 python:
@@ -49,13 +40,9 @@ before_install:
     - pip install codecov
 
 install:
-    # Before installation, we'll run ``pip wheel``, this will build wheels for
-    # anything that doesn't already have one on PyPI.
-    - pip wheel -r requirements.txt
-    # Actually install our dependencies now, this will pull from the directory
-    # that the first command placed the Wheels into.
     - pip install --pre $DJANGO 
-    - pip install -e . -r requirements.txt 
+    - pip install -r requirements.txt 
+    - pip list
 
 before_script:
     # Create testing databases for running migrations against
@@ -66,6 +53,5 @@ script:
     - make travis
 
 after_success:
-    - coveralls
     - codecov
     - ./transifex.sh

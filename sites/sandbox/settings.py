@@ -1,23 +1,23 @@
 import os
 
+import oscar
+
 # Path helper
 location = lambda x: os.path.join(
     os.path.dirname(os.path.realpath(__file__)), x)
 
-USE_TZ = True
-
-DEBUG = True
-SQL_DEBUG = True
+DEBUG = os.environ.get('DEBUG', 'true') != 'false'
+SQL_DEBUG = DEBUG
 
 ALLOWED_HOSTS = [
     'latest.oscarcommerce.com',
-    'master.oscarcommerce.com',
-    'server.dev'
+    'master.oscarcommerce.com'
 ]
 
 # This is needed for the hosted version of the sandbox
 ADMINS = (
     ('David Winterbottom', 'david.winterbottom@gmail.com'),
+    ('Michael van Tellingen', 'michaelvantellingen@gmail.com'),
 )
 EMAIL_SUBJECT_PREFIX = '[Oscar sandbox] '
 EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
@@ -27,12 +27,12 @@ MANAGERS = ADMINS
 # Use a Sqlite database by default
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': location('db.sqlite'),
-        'USER': '',
-        'PASSWORD': '',
-        'HOST': '',
-        'PORT': '',
+        'ENGINE': os.environ.get('DATABASE_ENGINE', 'django.db.backends.sqlite3'),
+        'NAME': os.environ.get('DATABASE_NAME', location('db.sqlite')),
+        'USER': os.environ.get('DATABASE_USER', None),
+        'PASSWORD': os.environ.get('DATABASE_PASSWORD', None),
+        'HOST': os.environ.get('DATABASE_HOST', None),
+        'PORT': os.environ.get('DATABASE_PORT', None),
         'ATOMIC_REQUESTS': True
     }
 }
@@ -50,6 +50,7 @@ CACHES = {
 # timezone as the operating system.
 # If running in a Windows environment this must be set to the same as your
 # system time zone.
+USE_TZ = True
 TIME_ZONE = 'Europe/London'
 
 TEST_RUNNER = 'django.test.runner.DiscoverRunner'
@@ -104,13 +105,9 @@ MEDIA_ROOT = location("public/media")
 # Examples: "http://media.lawrence.com", "http://example.com/media/"
 MEDIA_URL = '/media/'
 
-# URL prefix for admin media -- CSS, JavaScript and images. Make sure to use a
-# trailing slash.
-# Examples: "http://foo.com/media/", "/media/".
-#ADMIN_MEDIA_PREFIX = '/media/admin/'
-
 STATIC_URL = '/static/'
 STATIC_ROOT = location('public/static')
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 STATICFILES_DIRS = (
     location('static/'),
 )
@@ -162,14 +159,20 @@ TEMPLATES = [
 
 MIDDLEWARE_CLASSES = (
     'debug_toolbar.middleware.DebugToolbarMiddleware',
+
+    'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',
+
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.contrib.flatpages.middleware.FlatpageFallbackMiddleware',
+
     # Allow languages to be selected
     'django.middleware.locale.LocaleMiddleware',
     'django.middleware.common.CommonMiddleware',
+
     # Ensure a valid basket is added to the request instance for every request
     'oscar.apps.basket.middleware.BasketMiddleware',
     # Enable the ProfileMiddleware, then add ?cprofile to any
@@ -196,10 +199,9 @@ LOGGING = {
             'format': '[%(asctime)s] %(message)s'
         },
     },
-    'filters': {
-        'require_debug_false': {
-            '()': 'django.utils.log.RequireDebugFalse'
-        }
+    'root': {
+        'level': 'DEBUG',
+        'handlers': ['console'],
     },
     'handlers': {
         'null': {
@@ -211,37 +213,23 @@ LOGGING = {
             'class': 'logging.StreamHandler',
             'formatter': 'simple'
         },
-        'checkout_file': {
-            'level': 'INFO',
-            'class': 'oscar.core.logging.handlers.EnvFileHandler',
-            'filename': 'checkout.log',
-            'formatter': 'verbose'
-        },
-        'gateway_file': {
-            'level': 'INFO',
-            'class': 'oscar.core.logging.handlers.EnvFileHandler',
-            'filename': 'gateway.log',
-            'formatter': 'simple'
-        },
-        'error_file': {
-            'level': 'INFO',
-            'class': 'oscar.core.logging.handlers.EnvFileHandler',
-            'filename': 'errors.log',
-            'formatter': 'verbose'
-        },
-        'sorl_file': {
-            'level': 'INFO',
-            'class': 'oscar.core.logging.handlers.EnvFileHandler',
-            'filename': 'sorl.log',
-            'formatter': 'verbose'
-        },
-        'mail_admins': {
-            'level': 'ERROR',
-            'class': 'django.utils.log.AdminEmailHandler',
-            'filters': ['require_debug_false'],
-        },
     },
     'loggers': {
+        'oscar': {
+            'level': 'DEBUG',
+            'propagate': True,
+        },
+        'oscar.catalogue.import': {
+            'handlers': ['console'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+        'oscar.alerts': {
+            'handlers': ['null'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+
         # Django loggers
         'django': {
             'handlers': ['null'],
@@ -249,40 +237,22 @@ LOGGING = {
             'level': 'INFO',
         },
         'django.request': {
-            'handlers': ['mail_admins', 'error_file'],
+            'handlers': ['console'],
             'level': 'ERROR',
-            'propagate': False,
+            'propagate': True,
         },
         'django.db.backends': {
-            'handlers': ['null'],
-            'propagate': False,
-            'level': 'DEBUG',
-        },
-        # Oscar core loggers
-        'oscar.checkout': {
-            'handlers': ['console', 'checkout_file'],
-            'propagate': False,
-            'level': 'INFO',
-        },
-        'oscar.catalogue.import': {
-            'handlers': ['console'],
-            'propagate': False,
-            'level': 'INFO',
-        },
-        'oscar.alerts': {
-            'handlers': ['null'],
-            'propagate': False,
-            'level': 'INFO',
-        },
-        # Sandbox logging
-        'gateway': {
-            'handlers': ['gateway_file'],
+            'level': 'WARNING',
             'propagate': True,
-            'level': 'INFO',
         },
         # Third party
+        'raven': {
+            'level': 'DEBUG',
+            'handlers': ['console'],
+            'propagate': False,
+        },
         'sorl.thumbnail': {
-            'handlers': ['sorl_file'],
+            'handlers': ['console'],
             'propagate': True,
             'level': 'INFO',
         },
@@ -301,13 +271,12 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'django.contrib.sitemaps',
     'django_extensions',
+
     # Debug toolbar + extensions
     'debug_toolbar',
     'apps.gateway',     # For allowing dashboard access
     'widget_tweaks',
-]
-from oscar import get_core_apps
-INSTALLED_APPS = INSTALLED_APPS + get_core_apps()
+] + oscar.get_core_apps()
 
 # Add Oscar's custom auth backend so users can sign in using their email
 # address.
@@ -420,13 +389,19 @@ OSCAR_ORDER_STATUS_CASCADE = {
 # on-the-fly less processor.
 USE_LESS = False
 
-# Logging
-# =======
 
-LOG_ROOT = location('logs')
-# Ensure log root exists
-if not os.path.exists(LOG_ROOT):
-    os.mkdir(LOG_ROOT)
+# Sentry
+# ======
+
+if os.environ.get('SENTRY_DSN'):
+    RAVEN_CONFIG = {'dsn': os.environ.get('SENTRY_DSN')}
+    LOGGING['handlers']['sentry'] = {
+        'level': 'ERROR',
+        'class': 'raven.contrib.django.raven_compat.handlers.SentryHandler',
+    }
+    LOGGING['root']['handlers'].append('sentry')
+    INSTALLED_APPS.append('raven.contrib.django.raven_compat')
+
 
 # Sorl
 # ====
